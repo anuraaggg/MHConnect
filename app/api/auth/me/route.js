@@ -6,9 +6,9 @@ import { ObjectId } from "mongodb";
 
 export async function GET() {
   try {
-    // Get token from cookies (await it)
-    const cookieStore = await cookies(); // Await here
-    const token = cookieStore.get("token")?.value;
+    // Get token from cookies (awaited)
+    const cookieStore = cookies();
+    const token = await cookieStore.get("token")?.value;
 
     if (!token) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -25,23 +25,25 @@ export async function GET() {
     // Connect to database
     const { db } = await connectToDatabase();
 
-    // Find user by ID (convert _id to ObjectId)
+    // Find user by ID
     const user = await db.collection("users").findOne({ _id: new ObjectId(decoded.id) });
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    // Return user data (without password)
-    const userData = {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      userType: user.userType,
-    };
-
-    return NextResponse.json(userData, { status: 200 });
+    // Return user data (excluding sensitive fields)
+    return NextResponse.json(
+      {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        userType: user.userType,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Auth check error:", error);
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
-  }
+    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+  }
 }
+
