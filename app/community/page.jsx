@@ -7,25 +7,35 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Heart } from "lucide-react";
 
 // Function to anonymize names (removes numbers)
 const anonymizeName = (name) => {
   if (!name) return "Anonymous";
   
-  // Remove numbers
   let cleanedName = name.replace(/[0-9]/g, "");
-
-  // Shift characters forward (basic encoding)
   let encodedName = cleanedName
     .split("")
-    .map((char) => String.fromCharCode(char.charCodeAt(0) + 2)) // Shift by 2 places
+    .map((char) => String.fromCharCode(char.charCodeAt(0) + 2))
     .join("");
-
-  // Reverse the name for extra obfuscation
   return encodedName.split("").reverse().join("");
 };
 
+const checkProfanity = async (message) => {
+  try {
+    const res = await fetch('https://vector.profanity.dev', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    });
+
+    const data = await res.json();
+    return data.score > 0.5; // Flag content if score is above 0.5
+  } catch (error) {
+    console.error("Error checking profanity:", error);
+    return false; // If the check fails, assume no profanity.
+  }
+};
 
 export default function Community() {
   const { user } = useAuth();
@@ -33,8 +43,8 @@ export default function Community() {
   const [newPost, setNewPost] = useState("");
   const [commentInputs, setCommentInputs] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [warning, setWarning] = useState(""); // To store the warning message for profanity
 
-  // Fetch posts when the component loads
   useEffect(() => {
     const fetchPosts = async () => {
       try {
@@ -49,10 +59,16 @@ export default function Community() {
     fetchPosts();
   }, []);
 
-  // Handle submitting a new post
   const handleSubmitPost = async (e) => {
     e.preventDefault();
     if (!newPost.trim()) return;
+
+    // Check for profanity before submitting
+    const isProfane = await checkProfanity(newPost);
+    if (isProfane) {
+      setWarning("🚨 PROFANITY DETECTED! 🚨 Please refrain from using inappropriate language.");
+      return; // Prevent posting
+    }
 
     setIsLoading(true);
     try {
@@ -72,6 +88,7 @@ export default function Community() {
 
       setPosts([data.post, ...posts]);
       setNewPost("");
+      setWarning(""); // Clear any previous warning
     } catch (err) {
       console.error("Failed to create post:", err);
     } finally {
@@ -79,10 +96,16 @@ export default function Community() {
     }
   };
 
-  // Handle submitting a comment on a post
   const handleSubmitComment = async (postId) => {
     const comment = commentInputs[postId]?.trim();
     if (!comment) return;
+
+    // Check for profanity before submitting
+    const isProfane = await checkProfanity(comment);
+    if (isProfane) {
+      setWarning("🚨 PROFANITY DETECTED! 🚨 Please refrain from using inappropriate language.");
+      return; // Prevent posting
+    }
 
     try {
       const response = await fetch(`/api/posts/${postId}/comments`, {
@@ -94,10 +117,34 @@ export default function Community() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
 
-      setPosts(posts.map((post) => (post._id === postId ? { ...post, comments: [...post.comments, data.comment] } : post)));
+      setPosts(posts.map((post) =>
+        post._id === postId
+          ? { ...post, comments: [...post.comments, data.comment] }
+          : post
+      ));
       setCommentInputs({ ...commentInputs, [postId]: "" });
+      setWarning(""); // Clear any previous warning
     } catch (error) {
       console.error("Error adding comment:", error);
+    }
+  };
+
+  const handleLikePost = async (postId, alreadyLiked) => {
+    try {
+      const response = await fetch(`/api/posts/${postId}/like`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user?.id, like: !alreadyLiked }),
+      });
+
+      const data = await response.json();
+      setPosts(posts.map((post) =>
+        post._id === postId
+          ? { ...post, likes: data.likes, likedByUser: !alreadyLiked }
+          : post
+      ));
+    } catch (error) {
+      console.error("Error toggling like:", error);
     }
   };
 
@@ -105,6 +152,12 @@ export default function Community() {
     <div className="container py-8">
       <h1 className="text-3xl font-bold mb-4">Community Forum</h1>
       <p className="text-muted-foreground mb-6">A safe space to discuss mental health topics and share experiences.</p>
+
+      {warning && (
+        <div className="bg-red-500 text-white p-4 mb-6 rounded-md">
+          {warning}
+        </div>
+      )}
 
       {user && (
         <Card className="mb-6">
@@ -134,7 +187,6 @@ export default function Community() {
             <CardHeader>
               <div className="flex items-center gap-4">
                 <Avatar>
-                  <AvatarImage src="/placeholder.svg" alt={post.authorName || "Unknown"} />
                   <AvatarFallback>{anonymizeName(post.authorName)?.charAt(0) || "U"}</AvatarFallback>
                 </Avatar>
                 <div>
@@ -150,6 +202,10 @@ export default function Community() {
               <p className="whitespace-pre-line">{post.content}</p>
             </CardContent>
             <CardFooter className="flex justify-between border-t pt-4">
+              <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                <Heart className="h-4 w-4 text-red-500" />
+                <span>{post.likes || 0}</span>
+              </Button>
               <Button variant="ghost" size="sm" className="flex items-center gap-1">
                 <MessageSquare className="h-4 w-4" />
                 <span>{post.comments?.length || 0}</span>

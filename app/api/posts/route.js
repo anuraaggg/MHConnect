@@ -7,12 +7,7 @@ import { ObjectId } from "mongodb";
 export async function GET() {
   try {
     const { db } = await connectToDatabase();
-    
-    const posts = await db.collection("posts")
-      .find({})
-      .sort({ createdAt: -1 }) // Sort newest first
-      .toArray();
-
+    const posts = await db.collection("posts").find({}).sort({ createdAt: -1 }).toArray();
     return NextResponse.json({ posts }, { status: 200 });
   } catch (error) {
     console.error("🔥 Error fetching posts:", error);
@@ -33,13 +28,30 @@ export async function POST(request) {
       return NextResponse.json({ message: "Post content is required" }, { status: 400 });
     }
 
+    // 🔍 Profanity Check
+    const moderationRes = await fetch("https://vector.profanity.dev", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: content }),
+    });
+
+    const moderationData = await moderationRes.json();
+
+    if (moderationData.isProfanity) {
+      return NextResponse.json(
+        { message: "Inappropriate content detected.", flaggedFor: moderationData.flaggedFor }, 
+        { status: 400 }
+      );
+    }
+
+    // ✅ If content is safe, continue with post creation
     const { db } = await connectToDatabase();
     const newPost = {
       _id: new ObjectId(),
       authorId: new ObjectId(user.id),
       authorName: user.name,
       content,
-      createdAt: new Date(), // ✅ Use Date object (MongoDB handles it)
+      createdAt: new Date(),
       likes: 0,
       comments: [],
     };
@@ -63,13 +75,11 @@ export async function PUT(request) {
     const { postId } = request.query;  // Get the post ID from the URL
     const { db } = await connectToDatabase();
 
-    // Find the post by ID
     const post = await db.collection("posts").findOne({ _id: new ObjectId(postId) });
     if (!post) {
       return NextResponse.json({ message: "Post not found" }, { status: 404 });
     }
 
-    // Increment the like count
     const updatedPost = await db.collection("posts").findOneAndUpdate(
       { _id: new ObjectId(postId) },
       { $inc: { likes: 1 } },
