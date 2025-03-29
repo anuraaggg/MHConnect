@@ -1,10 +1,30 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import HealthArticles from "@/components/health-articles"
-import AboutUs from "@/components/about-us"
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import HealthArticles from "@/components/health-articles";
+import AboutUs from "@/components/about-us";
 
 export default function Home() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    }
+    fetchUser();
+  }, []);
+
   return (
     <div className="container mx-auto px-4 py-8">
       <section className="py-12 md:py-24 lg:py-32 bg-gradient-to-b from-background to-background/80 rounded-xl">
@@ -16,14 +36,16 @@ export default function Home() {
                 A platform connecting mental health professionals and individuals seeking support.
               </p>
             </div>
-            <div className="space-x-4">
-              <Link href="/auth/signin">
-                <Button>Sign In</Button>
-              </Link>
-              <Link href="/auth/signup">
-                <Button variant="outline">Sign Up</Button>
-              </Link>
-            </div>
+            {!user && ( // Show buttons only if the user is NOT logged in
+              <div className="space-x-4">
+                <Link href="/auth/signin">
+                  <Button>Sign In</Button>
+                </Link>
+                <Link href="/auth/signup">
+                  <Button variant="outline">Sign Up</Button>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -68,6 +90,5 @@ export default function Home() {
       <HealthArticles />
       <AboutUs />
     </div>
-  )
+  );
 }
-
