@@ -9,6 +9,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageSquare, ThumbsUp, Flag } from "lucide-react";
 
+// Function to obfuscate a name while keeping it recognizable
+const encodeName = (name) => {
+  if (!name) return "Anonymous";
+
+  // Convert name to Base64, remove numbers, and keep first 6 letters
+  const encoded = btoa(name) // Base64 encode
+    .replace(/[0-9+/=]/g, "") // Remove numbers and special characters
+    .slice(0, 6) // Keep first 6 letters
+
+  return encoded || "Anon"; // Fallback in case of empty result
+};
+
+
 export default function Community() {
   const { user } = useAuth();
   const [posts, setPosts] = useState([]);
@@ -16,7 +29,6 @@ export default function Community() {
   const [commentInputs, setCommentInputs] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch posts and comments when the component loads
   useEffect(() => {
     const fetchPosts = async () => {
       try {
@@ -31,7 +43,6 @@ export default function Community() {
     fetchPosts();
   }, []);
 
-  // Handle submitting a new post
   const handleSubmitPost = async (e) => {
     e.preventDefault();
     if (!newPost.trim()) return;
@@ -61,7 +72,6 @@ export default function Community() {
     }
   };
 
-  // Handle submitting a comment on a post
   const handleSubmitComment = async (postId) => {
     const comment = commentInputs[postId]?.trim();
     if (!comment) return;
@@ -86,7 +96,6 @@ export default function Community() {
     }
   };
 
-  // Handle liking a post
   const handleLikePost = async (postId) => {
     try {
       const response = await fetch(`/api/posts/${postId}/like`, {
@@ -101,7 +110,6 @@ export default function Community() {
       const data = await response.json();
       const updatedPost = data.post;
 
-      // Update the local state with the new like count
       setPosts((prevPosts) =>
         prevPosts.map((post) =>
           post._id === updatedPost._id
@@ -147,11 +155,11 @@ export default function Community() {
             <CardHeader>
               <div className="flex items-center gap-4">
                 <Avatar>
-                  <AvatarImage src="/placeholder.svg" alt={post.authorName || "Unknown"} />
-                  <AvatarFallback>{post.authorName?.charAt(0) || "U"}</AvatarFallback>
+                  <AvatarImage src="/placeholder.svg" alt={encodeName(post.authorName) || "Unknown"} />
+                  <AvatarFallback>{encodeName(post.authorName).charAt(0) || "U"}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <span className="font-semibold">{post.authorName || "Unknown"}</span>
+                  <span className="font-semibold">{encodeName(post.authorName)}</span>
                   {post.userType === "professional" && (
                     <span className="bg-primary/20 text-primary text-xs px-2 py-0.5 rounded-full">Professional</span>
                   )}
@@ -179,37 +187,18 @@ export default function Community() {
               </Button>
             </CardFooter>
 
-            {/* Comments Section */}
             <CardContent className="border-t pt-4">
               {post.comments.map((comment, index) => (
                 <div key={index} className="flex gap-4 mb-2">
                   <Avatar>
-                    <AvatarFallback>{comment.authorName?.charAt(0) || "U"}</AvatarFallback>
+                    <AvatarFallback>{encodeName(comment.authorName).charAt(0) || "U"}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold">{comment.authorName}</p>
+                    <p className="font-semibold">{encodeName(comment.authorName)}</p>
                     <p className="text-sm">{comment.content}</p>
                   </div>
                 </div>
               ))}
-
-              {user && (
-                <div className="mt-4">
-                  <Input
-                    placeholder="Write a comment..."
-                    value={commentInputs[post._id] || ""}
-                    onChange={(e) => setCommentInputs({ ...commentInputs, [post._id]: e.target.value })}
-                  />
-                  <Button
-                    className="mt-2"
-                    size="sm"
-                    onClick={() => handleSubmitComment(post._id)}
-                    disabled={!commentInputs[post._id]?.trim()}
-                  >
-                    Post Comment
-                  </Button>
-                </div>
-              )}
             </CardContent>
           </Card>
         ))}

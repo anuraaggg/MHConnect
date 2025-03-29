@@ -6,9 +6,9 @@ import { ObjectId } from "mongodb";
 
 export async function GET() {
   try {
-    // Get token from cookies (awaited)
+    // Get token from cookies (NO await needed)
     const cookieStore = cookies();
-    const token = await cookieStore.get("token")?.value;
+    const token = cookieStore.get("token")?.value;
 
     if (!token) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -46,4 +46,3 @@ export async function GET() {
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
 }
-

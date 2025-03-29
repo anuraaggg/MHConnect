@@ -8,7 +8,7 @@ import HealthArticles from "@/components/health-articles";
 import AboutUs from "@/components/about-us";
 
 export default function Home() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(false); // Change from null → false (prevents flickering)
 
   useEffect(() => {
     async function fetchUser() {
@@ -16,10 +16,13 @@ export default function Home() {
         const res = await fetch("/api/auth/me");
         if (res.ok) {
           const data = await res.json();
-          setUser(data);
+          setUser(data); // Set user data when available
+        } else {
+          setUser(null); // Explicitly mark user as not logged in
         }
       } catch (error) {
         console.error("Error fetching user:", error);
+        setUser(null);
       }
     }
     fetchUser();
@@ -31,12 +34,16 @@ export default function Home() {
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl md:text-6xl">Mental Health Connect</h1>
+              <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
+                Mental Health Connect
+              </h1>
               <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
                 A platform connecting mental health professionals and individuals seeking support.
               </p>
             </div>
-            {!user && ( // Show buttons only if the user is NOT logged in
+
+            {/* Prevent flickering by checking if user is explicitly null */}
+            {user === null && (
               <div className="space-x-4">
                 <Link href="/auth/signin">
                   <Button>Sign In</Button>
@@ -60,8 +67,7 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <p>
-                  Join discussions, share experiences, and find support from others who understand what you're going
-                  through.
+                  Join discussions, share experiences, and find support from others who understand what you're going through.
                 </p>
               </CardContent>
             </Card>

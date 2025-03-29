@@ -53,8 +53,12 @@ export default function Navbar() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src="/placeholder.svg" alt={user.name} />
-                    <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
+                    {/* Use user's profile picture if available, else fallback to default avatar */}
+                    <AvatarImage 
+                      src={user.image || "/default-avatar.png?v=2"} 
+                      alt={user.name || "User Avatar"} 
+                    />
+                    <AvatarFallback>{user.name?.charAt(0) || "U"}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
@@ -157,4 +161,3 @@ export default function Navbar() {
     </header>
   )
 }
-
