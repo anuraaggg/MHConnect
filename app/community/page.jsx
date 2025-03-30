@@ -30,7 +30,7 @@ const checkProfanity = async (message) => {
     });
 
     const data = await res.json();
-    return data.score > 0.5; // Flag content if score is above 0.5
+    return data.score > 0.7; // Flag content if score is above 0.5
   } catch (error) {
     console.error("Error checking profanity:", error);
     return false; // If the check fails, assume no profanity.
