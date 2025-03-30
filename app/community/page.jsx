@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageSquare, Heart } from "lucide-react";
+import { MessageSquare, Heart, Trash } from "lucide-react";
 
 // Function to anonymize names (removes numbers)
 const anonymizeName = (name) => {
@@ -15,7 +15,7 @@ const anonymizeName = (name) => {
   
   let cleanedName = name.replace(/[0-9]/g, "");
   let encodedName = cleanedName
-    .split("")
+    .split(" ")
     .map((char) => String.fromCharCode(char.charCodeAt(0) + 2))
     .join("");
   return encodedName.split("").reverse().join("");
@@ -130,6 +130,11 @@ export default function Community() {
   };
 
   const handleLikePost = async (postId, alreadyLiked) => {
+    if (!user) {
+      alert("You must be signed in to like posts!");
+      return; // If not signed in, show alert and do nothing
+    }
+
     try {
       const response = await fetch(`/api/posts/${postId}/like`, {
         method: "POST",
@@ -145,6 +150,24 @@ export default function Community() {
       ));
     } catch (error) {
       console.error("Error toggling like:", error);
+    }
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (postId && user) {
+      try {
+        const response = await fetch(`/api/posts/${postId}`, {
+          method: "DELETE",
+        });
+
+        if (response.ok) {
+          setPosts(posts.filter((post) => post._id !== postId));
+        } else {
+          console.error("Failed to delete post");
+        }
+      } catch (error) {
+        console.error("Error deleting post:", error);
+      }
     }
   };
 
@@ -202,7 +225,7 @@ export default function Community() {
               <p className="whitespace-pre-line">{post.content}</p>
             </CardContent>
             <CardFooter className="flex justify-between border-t pt-4">
-              <Button variant="ghost" size="sm" className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" className="flex items-center gap-1" onClick={() => handleLikePost(post._id, post.likedByUser)}>
                 <Heart className="h-4 w-4 text-red-500" />
                 <span>{post.likes || 0}</span>
               </Button>
