@@ -1,4 +1,4 @@
-                                                                  Mental Health Community Platform (MERN Stack)
+                                                              Mental Health Community Platform (MERN Stack)
                                                                   
 A MERN stack web application designed to foster community-driven discussions and provide resources for mental health awareness. The platform has two main sections:
 Reddit-like Community Section: Casual Users can post and reply to discussions.
