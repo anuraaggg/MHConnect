@@ -4,6 +4,7 @@ import { AuthProvider } from "@/context/auth-context"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import "./globals.css"
+import { ReactNode } from "react";
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -13,7 +14,7 @@ export const metadata = {
     generator: 'v0.dev'
 }
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
